@@ -1,0 +1,6 @@
+<h1>Редактирование студента</h1>
+<form method="POST" action="/students/{{ id }}/edit">
+    <input type="text" name="first_name" value="{{ first_name }}">
+    <input type="text" name="email" value="{{ email }}">
+    <button type="submit">Сохранить</button>
+</form>

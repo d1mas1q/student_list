@@ -57,10 +57,10 @@ def get_student_by_id(student_id):
     return Student(*row)
 
 
-def update_student(first_name, email, id):
+def update_student(first_name, email, student_id):
     connection = sqlite3.connect('test.db')
     cursor = connection.cursor()
-    cursor.execute("UPDATE students SET first_name = ?, email = ? WHERE id = ?", (first_name, email, id))
+    cursor.execute("UPDATE students SET first_name = ?, email = ? WHERE id = ?", (first_name, email, student_id))
     connection.commit()
     connection.close()
 

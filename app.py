@@ -1,6 +1,6 @@
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from database import add_student, get_students, delete_student, update_student
+from database import add_student, get_students, delete_student, update_student, get_student_by_id, StudentNotFoundError
 from services.validator import validate_student
 
 
@@ -37,12 +37,30 @@ class AppHandler(BaseHTTPRequestHandler):
                         <a href="/students/{student.id}/delete">
                             Удалить
                         </a>
+                        <a href="/students/{student.id}/edit">
+                            Изменить
+                        </a>
                         """ for student in students)
         html = self.render_template("templates/list.html", {"students": res})
         self.send_html(html)
 
     def show_form(self):
         html = self.load_template("templates/form.html")
+        self.send_html(html)
+
+    def show_edit_form(self, student_id):
+        try:
+            student = get_student_by_id(student_id)
+        except StudentNotFoundError:
+            self.send_html(
+                "<h1>404 - Студент не найден</h1>",
+                status=404
+            )
+            return
+        context = {'id': student_id,
+                   'first_name': student.first_name,
+                   'email': student.email}
+        html = self.render_template('templates/edit.html', context)
         self.send_html(html)
 
     def create_student(self):
@@ -76,21 +94,30 @@ class AppHandler(BaseHTTPRequestHandler):
         elif parsed.path == "/form":
             self.show_form()
         elif len(parts) == 3 and parts[0] == "students" and parts[2] == "delete":
-            student_id = int(parts[1])
-            self.delete_student_view(student_id)
+            self.delete_student_view(int(parts[1]))
         elif len(parts) == 3 and parts[0] == "students" and parts[2] == "edit":
-            student_id = int(parts[1])
-            first_name = params.get("first_name", [""])[0]
-            email = params.get("email", [""])[0]
-            update_student(first_name, email, student_id)
+            self.show_edit_form(int(parts[1]))
 
         else:
             html = "<h1>404 - Страница не найдена</h1>"
             self.send_html(html, status=404)
 
     def do_POST(self):
+        parsed = urlparse(self.path)
+        parts = parsed.path.strip('/').split("/")
+
         if self.path == "/form":
             self.create_student()
+        elif len(parts) == 3 and parts[0] == "students" and parts[2] == "edit":
+            content_length = int(self.headers['Content-Length'])
+            body = self.rfile.read(content_length).decode("utf-8")
+            params = parse_qs(body)
+            first_name = params.get("first_name", [""])[0]
+            email = params.get("email", [""])[0]
+            update_student(first_name, email, int(parts[1]))
+            self.send_response(302)
+            self.send_header("Location", "/")
+            self.end_headers()
         else:
             self.send_html(
                 "<h1>404</h1>",
