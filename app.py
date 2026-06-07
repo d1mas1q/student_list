@@ -5,6 +5,12 @@ from services.validator import validate_student
 
 
 class AppHandler(BaseHTTPRequestHandler):
+
+    def redirect(self):
+        self.send_response(302)
+        self.send_header("Location", "/")
+        self.end_headers()
+
     def send_html(self, html, status=200):
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
@@ -73,15 +79,11 @@ class AppHandler(BaseHTTPRequestHandler):
 
         if not errors:
             add_student(first_name, email)
-        self.send_response(302)
-        self.send_header("Location", "/")
-        self.end_headers()
+        self.redirect()
 
     def delete_student_view(self, student_id):
         delete_student(student_id)
-        self.send_response(302)
-        self.send_header("Location", "/")
-        self.end_headers()
+        self.redirect()
 
 
     def do_GET(self):
@@ -115,9 +117,7 @@ class AppHandler(BaseHTTPRequestHandler):
             first_name = params.get("first_name", [""])[0]
             email = params.get("email", [""])[0]
             update_student(first_name, email, int(parts[1]))
-            self.send_response(302)
-            self.send_header("Location", "/")
-            self.end_headers()
+            self.redirect()
         else:
             self.send_html(
                 "<h1>404</h1>",
