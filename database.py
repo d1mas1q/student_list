@@ -9,6 +9,22 @@ class StudentNotFoundError(Exception):
         )
 
 
+def row_to_student(self, row):
+    if not row:
+        return None
+    return Student(
+        id=row['id'],
+        first_name=row['first_name'],
+        last_name=row['last_name'],
+        gender=row['gender'],
+        group_number=row['group_number'],
+        email=row['email'],
+        exam_score=row['exam_score'],
+        birth_year=row['birth_year'],
+        is_local=bool(row['is_local']),
+        auth_token=row['auth_token']
+    )
+
 
 def execute(sql, params=()):
     with sqlite3.connect("test.db") as connection:
@@ -18,46 +34,57 @@ def execute(sql, params=()):
 
 def fetch_one(sql, params=()):
     with sqlite3.connect("test.db") as connection:
+        connection.row_factory = sqlite3.Row
         cursor = connection.cursor()
         cursor.execute(sql, params)
         return cursor.fetchone()
 
 def fetch_all(sql, params=()):
     with sqlite3.connect("test.db") as connection:
+        connection.row_factory = sqlite3.Row
         cursor = connection.cursor()
         cursor.execute(sql, params)
         return cursor.fetchall()
 
-execute('''CREATE TABLE IF NOT EXISTS students (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    first_name TEXT NOT NULL,
-    email TEXT NOT NULL
-);''')
+execute('''
+        CREATE TABLE IF NOT EXISTS students (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            first_name TEXT NOT NULL CHECK(LENGTH(first_name) >= 2 AND LENGTH(first_name) <= 50),
+            last_name TEXT NOT NULL CHECK(LENGTH(last_name) >= 2 AND LENGTH(last_name) <= 50),
+            gender TEXT NOT NULL CHECK(gender IN ('мужской', 'женский')),
+            group_number TEXT NOT NULL CHECK(LENGTH(group_number) BETWEEN 2 AND 5),
+            email TEXT NOT NULL UNIQUE CHECK(email LIKE '%@%'),
+            exam_score INTEGER NOT NULL CHECK(exam_score BETWEEN 0 AND 400),
+            birth_year INTEGER NOT NULL,
+            is_local BOOLEAN NOT NULL DEFAULT 1,
+            auth_token TEXT UNIQUE
+        )
+    ''')
 
 
-def add_student(first_name, email):
-    sql = "INSERT INTO students (first_name, email) VALUES (?,?)"
-    params = (first_name, email)
+def add_student(first_name, last_name, gender, group_number, email, exam_score, birth_year, is_local, auth_token):
+    sql = "INSERT INTO students (first_name, last_name, gender, group_number, email, exam_score, birth_year, is_local, auth_token) VALUES (?,?,?,?,?,?,?,?,?)"
+    params = (first_name, last_name, gender, group_number, email, exam_score, birth_year, is_local, auth_token)
     execute(sql, params)
 
 
 
 def get_students():
-    sql = "SELECT id, first_name, email FROM students"
+    sql = "SELECT * FROM students"
     rows = fetch_all(sql)
-    return [Student(*row) for row in rows]
+    return [row_to_student(row) for row in rows]
 
 
 def get_student_by_id(student_id):
-    sql = "SELECT id, first_name, email FROM students WHERE id = ?"
+    sql = "SELECT * FROM students WHERE id = ?"
     row = fetch_one(sql, (student_id,))
     if row is None: raise StudentNotFoundError(student_id)
-    return Student(*row)
+    return row_to_student(row)
 
 
-def update_student(first_name, email, student_id):
-    sql = "UPDATE students SET first_name = ?, email = ? WHERE id = ?"
-    params = (first_name, email, student_id)
+def update_student(first_name, last_name, gender, group_number, email, exam_score, birth_year, is_local, student_id):
+    sql = "UPDATE students SET first_name = ?, last_name = ?, gender = ?, group_number = ?, email = ?, exam_score = ?, birth_year = ?, is_local = ? WHERE id = ?"
+    params = (first_name, last_name, gender, group_number, email, exam_score, birth_year, is_local, student_id)
     rows = execute(sql, params)
     if rows == 0: raise StudentNotFoundError(student_id)
 
@@ -66,3 +93,4 @@ def delete_student(student_id):
     params = (student_id,)
     rows = execute(sql, params)
     if rows == 0: raise StudentNotFoundError(student_id)
+
