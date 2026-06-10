@@ -2,7 +2,10 @@ from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 from database import add_student, get_students, delete_student, update_student, get_student_by_id, StudentNotFoundError
 from services.validator import validate_student
+from jinja2 import Environment, FileSystemLoader
 
+#Jinja2
+env = Environment(loader=FileSystemLoader("templates"))
 
 class AppHandler(BaseHTTPRequestHandler):
 
@@ -21,37 +24,32 @@ class AppHandler(BaseHTTPRequestHandler):
         with open(path, encoding="utf-8") as file:
             return file.read()
 
-    def render_template(self, path, context):
-        with open(path, encoding="utf-8") as file:
-            html = file.read()
+    def render_template(self, template_name, context):
+        template = env.get_template(template_name)
+        return template.render(**context)
 
-        for key, value in context.items():
-            html = html.replace(
-                "{{ " + key + " }}",
-                str(value)
-            )
+    def get_value(self, params, key, default=''):
+        return params.get(key, [default])[0]
 
-        return html
+    def parse_student_form(self, params):
+        return {
+            "first_name": self.get_value(params, "first_name"),
+            "last_name": self.get_value(params, "last_name"),
+            "gender": self.get_value(params, "gender"),
+            "group_number": self.get_value(params, "group_number"),
+            "email": self.get_value(params, "email"),
+            "exam_score": self.get_value(params, "exam_score"),
+            "birth_year": self.get_value(params, "birth_year"),
+            "is_local": self.get_value(params, "is_local") == 'on',
+        }
 
     def show_students(self):
         students = get_students()
-        res = "".join(f"""
-                        <p>
-                            Name: {student.first_name},
-                            Email: {student.email}
-                        </p>
-                        <a href="/students/{student.id}/delete">
-                            Удалить
-                        </a>
-                        <a href="/students/{student.id}/edit">
-                            Изменить
-                        </a>
-                        """ for student in students)
-        html = self.render_template("templates/list.html", {"students": res})
+        html = self.render_template("templates/list.html", {"students": students})
         self.send_html(html)
 
     def show_form(self):
-        html = self.load_template("templates/form.html")
+        html = self.render_template('form.html', {})
         self.send_html(html)
 
     def show_edit_form(self, student_id):
@@ -63,22 +61,19 @@ class AppHandler(BaseHTTPRequestHandler):
                 status=404
             )
             return
-        context = {'id': student_id,
-                   'first_name': student.first_name,
-                   'email': student.email}
-        html = self.render_template('templates/edit.html', context)
+        context = {'student' : student}
+        html = self.render_template('edit.html', context)
         self.send_html(html)
 
     def create_student(self):
         content_length = int(self.headers['Content-Length'])
         body = self.rfile.read(content_length).decode("utf-8")
         params = parse_qs(body)
-        first_name = params.get("first_name", [""])[0]
-        email = params.get("email", [""])[0]
-        errors = validate_student(first_name, email)
+        params = self.parse_student_form(params)
+        errors = validate_student(params)
 
         if not errors:
-            add_student(first_name, email)
+            add_student(**params)
         self.redirect()
 
     def delete_student_view(self, student_id):

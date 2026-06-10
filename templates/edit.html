@@ -1,6 +1,37 @@
 <h1>Редактирование студента</h1>
-<form method="POST" action="/students/{{ id }}/edit">
-    <input type="text" name="first_name" value="{{ first_name }}">
-    <input type="text" name="email" value="{{ email }}">
+<form method="POST" action="/students/{{ student.id }}/edit">
+    <input type="text" name="first_name" value="{{ student.first_name }}">
+    <input type="text" name="last_name" value="{{ student.last_name }}">
+    <label>
+    <input
+        type="radio"
+        name="gender"
+        value="мужской"
+        {% if student.gender == "мужской" %}
+        checked
+        {% endif %}
+    >
+    Мужской
+</label>
+
+<label>
+    <input
+        type="radio"
+        name="gender"
+        value="женский"
+        {% if student.gender == "женский" %}
+        checked
+        {% endif %}
+    >
+    Женский
+</label>
+    <input type="text" name="group_number" value="{{ student.group_number }}">
+    <input type="text" name="email" value="{{ student.email }}">
+    <input type="number" name="exam_score" value="{{ student.exam_score }}">
+    <input type="number" name="birth_year" value="{{ student.birth_year }}">
+    <label>
+    <input type="checkbox" name="is_local" {% if student.is_local %}checked{% endif %}>
+    Местный
+    </label>
     <button type="submit">Сохранить</button>
 </form>

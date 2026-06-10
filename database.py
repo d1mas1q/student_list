@@ -9,7 +9,7 @@ class StudentNotFoundError(Exception):
         )
 
 
-def row_to_student(self, row):
+def row_to_student(row):
     if not row:
         return None
     return Student(
@@ -28,6 +28,7 @@ def row_to_student(self, row):
 
 def execute(sql, params=()):
     with sqlite3.connect("test.db") as connection:
+        connection.row_factory = sqlite3.Row
         cursor = connection.cursor()
         cursor.execute(sql, params)
         return cursor.rowcount
