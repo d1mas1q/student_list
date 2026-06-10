@@ -2,4 +2,6 @@
 
 <a href="/form">Добавить абитуриента</a>
 
-{{ students }}
+{% for student in students %}
+{{ student.first_name }}
+{% endfor %}

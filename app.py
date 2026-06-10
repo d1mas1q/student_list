@@ -45,7 +45,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def show_students(self):
         students = get_students()
-        html = self.render_template("templates/list.html", {"students": students})
+        html = self.render_template("list.html", {"students": students})
         self.send_html(html)
 
     def show_form(self):
