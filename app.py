@@ -1,6 +1,8 @@
+import secrets
+from http.cookies import SimpleCookie
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from database import add_student, get_students, delete_student, update_student, get_student_by_id, StudentNotFoundError
+from database import add_student, get_students, delete_student, update_student, get_student_by_id, StudentNotFoundError, get_student_by_token
 from services.validator import validate_student
 from jinja2 import Environment, FileSystemLoader
 
@@ -9,8 +11,9 @@ env = Environment(loader=FileSystemLoader("templates"))
 
 class AppHandler(BaseHTTPRequestHandler):
 
-    def redirect(self):
+    def redirect(self, auth_token=None):
         self.send_response(302)
+        if auth_token: self.send_header('Set-Cookie', f'auth_token={auth_token}')
         self.send_header("Location", "/")
         self.end_headers()
 
@@ -27,6 +30,20 @@ class AppHandler(BaseHTTPRequestHandler):
     def render_template(self, template_name, context):
         template = env.get_template(template_name)
         return template.render(**context)
+
+    def get_auth_token(self):
+        cookie_header = self.headers.get('Cookie')
+
+        if not cookie_header:
+            return None
+
+        cookie = SimpleCookie()
+        cookie.load(cookie_header)
+
+        if 'auth_token' in cookie:
+            return cookie['auth_token'].value
+
+        return None
 
     def get_value(self, params, key, default=''):
         return params.get(key, [default])[0]
@@ -49,6 +66,12 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_html(html)
 
     def show_form(self):
+        auth_token = self.get_auth_token()
+
+        if auth_token and get_student_by_token(auth_token):
+            self.redirect()
+            return
+
         html = self.render_template('form.html', {})
         self.send_html(html)
 
@@ -69,12 +92,14 @@ class AppHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers['Content-Length'])
         body = self.rfile.read(content_length).decode("utf-8")
         params = parse_qs(body)
-        params = self.parse_student_form(params)
-        errors = validate_student(params)
+        student = self.parse_student_form(params)
+        errors = validate_student(student)
 
         if not errors:
-            add_student(**params)
-        self.redirect()
+            student['auth_token'] = secrets.token_hex(16)
+            add_student(**student)
+            self.redirect(student['auth_token'])
+        else: self.redirect()
 
     def delete_student_view(self, student_id):
         delete_student(student_id)
@@ -109,9 +134,8 @@ class AppHandler(BaseHTTPRequestHandler):
             content_length = int(self.headers['Content-Length'])
             body = self.rfile.read(content_length).decode("utf-8")
             params = parse_qs(body)
-            first_name = params.get("first_name", [""])[0]
-            email = params.get("email", [""])[0]
-            update_student(first_name, email, int(parts[1]))
+            student = self.parse_student_form(params)
+            update_student(**student, student_id=int(parts[1]))
             self.redirect()
         else:
             self.send_html(

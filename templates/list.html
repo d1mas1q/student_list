@@ -1,7 +1,12 @@
 <h1>Список студентов</h1>
 
 <a href="/form">Добавить абитуриента</a>
-
 {% for student in students %}
-{{ student.first_name }}
+    <p>
+        {{ student.first_name }}
+        {{ student.last_name }}
+        ({{ student.group_number }})
+    </p>
+    <a href="/students/{{ student.id }}/edit">Изменить</a>
+    <a href="/students/{{ student.id }}/delete">Удалить</a>
 {% endfor %}

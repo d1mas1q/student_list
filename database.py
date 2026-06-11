@@ -82,6 +82,12 @@ def get_student_by_id(student_id):
     if row is None: raise StudentNotFoundError(student_id)
     return row_to_student(row)
 
+def get_student_by_token(auth_token):
+    sql = "SELECT * FROM students WHERE auth_token = ?"
+    row = fetch_one(sql, (auth_token,))
+    return row_to_student(row)
+
+
 
 def update_student(first_name, last_name, gender, group_number, email, exam_score, birth_year, is_local, student_id):
     sql = "UPDATE students SET first_name = ?, last_name = ?, gender = ?, group_number = ?, email = ?, exam_score = ?, birth_year = ?, is_local = ? WHERE id = ?"
