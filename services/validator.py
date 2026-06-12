@@ -52,14 +52,14 @@ def validate_birthyear(birth_year: int) -> bool:
 
 
 def validate_student(student_data):
-    errors = []
+    errors = {}
 
-    if not validate_first_name_permissive(student_data['first_name']): errors.append('Некорректное имя')
-    if not validate_last_name(student_data['last_name']): errors.append('Некорректная фамилия')
-    if student_data['gender'] not in ("мужской", "женский"): errors.append('Некорректный пол')
-    if not validate_groupnumber(student_data['group_number']): errors.append('Некорректный номер группы')
-    if not validate_email(student_data['email']): errors.append('Некорректный email')
-    if not validate_examscore(student_data['exam_score']): errors.append('Некорректное значение баллов')
-    if not validate_birthyear(student_data['birth_year']): errors.append('Некорректное значение года рождения')
+    if not validate_first_name_permissive(student_data['first_name']): errors['first_name'] = 'Некорректное имя'
+    if not validate_last_name(student_data['last_name']): errors['last_name'] = 'Некорректная фамилия'
+    if student_data['gender'] not in ("мужской", "женский"): errors['gender'] = 'Необходимо выбрать пол'
+    if not validate_groupnumber(student_data['group_number']): errors['group_number'] = 'Некорректный номер группы'
+    if not validate_email(student_data['email']): errors['email'] = 'Некорректный email'
+    if not validate_examscore(student_data['exam_score']): errors['exam_score'] = 'Некорректное значение баллов'
+    if not validate_birthyear(student_data['birth_year']): errors['birth_year'] = 'Некорректное значение года рождения'
 
     return errors

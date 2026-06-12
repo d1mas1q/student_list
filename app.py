@@ -72,7 +72,13 @@ class AppHandler(BaseHTTPRequestHandler):
             self.redirect()
             return
 
-        html = self.render_template('form.html', {})
+        html = self.render_template(
+            "form.html",
+            {
+                "student": {},
+                "errors": {}
+            }
+        )
         self.send_html(html)
 
     def show_edit_form(self, student_id):
@@ -99,7 +105,16 @@ class AppHandler(BaseHTTPRequestHandler):
             student['auth_token'] = secrets.token_hex(16)
             add_student(**student)
             self.redirect(student['auth_token'])
-        else: self.redirect()
+        else:
+            html = self.render_template(
+                "form.html",
+                {
+                    "errors": errors,
+                    "student": student
+                }
+            )
+            self.send_html(html)
+            return
 
     def delete_student_view(self, student_id):
         delete_student(student_id)

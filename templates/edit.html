@@ -1,7 +1,7 @@
 <h1>Редактирование студента</h1>
 <form method="POST" action="/students/{{ student.id }}/edit">
-    <input type="text" name="first_name" value="{{ student.first_name }}">
-    <input type="text" name="last_name" value="{{ student.last_name }}">
+    <input type="text" name="first_name" value="{{ student.first_name or '' }}">
+    <input type="text" name="last_name" value="{{ student.last_name or '' }}">
     <label>
     <input
         type="radio"
@@ -25,10 +25,10 @@
     >
     Женский
 </label>
-    <input type="text" name="group_number" value="{{ student.group_number }}">
-    <input type="text" name="email" value="{{ student.email }}">
-    <input type="number" name="exam_score" value="{{ student.exam_score }}">
-    <input type="number" name="birth_year" value="{{ student.birth_year }}">
+    <input type="text" name="group_number" value="{{ student.group_number or '' }}">
+    <input type="text" name="email" value="{{ student.email or '' }}">
+    <input type="number" name="exam_score" value="{{ student.exam_score or '' }}">
+    <input type="number" name="birth_year" value="{{ student.birth_year or '' }}">
     <label>
     <input type="checkbox" name="is_local" {% if student.is_local %}checked{% endif %}>
     Местный
