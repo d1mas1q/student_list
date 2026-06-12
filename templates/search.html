@@ -1,0 +1,18 @@
+<h1>Поиск абитуриентов</h1>
+
+<form method="GET">
+    <input type="text" name="q" value="{{ query }}">
+    <button type="submit">Найти</button>
+</form>
+
+{% if query %}
+<p>
+    Показаны только абитуриенты, найденные по запросу «{{ query }}».
+</p>
+
+<a href="/">Показать всех абитуриентов</a>
+{% endif %}
+
+{% for student in students %}
+    <p>{{ student.first_name }}</p>
+{% endfor %}

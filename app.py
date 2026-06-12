@@ -2,7 +2,7 @@ import secrets
 from http.cookies import SimpleCookie
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from database import add_student, get_students, delete_student, update_student, get_student_by_id, StudentNotFoundError, get_student_by_token
+from database import add_student, get_students, delete_student, update_student, get_student_by_id, StudentNotFoundError, get_student_by_token, find_students
 from services.validator import validate_student
 from jinja2 import Environment, FileSystemLoader
 
@@ -94,6 +94,23 @@ class AppHandler(BaseHTTPRequestHandler):
         html = self.render_template('edit.html', context)
         self.send_html(html)
 
+    def show_search(self, params):
+        query = self.get_value(params, 'q')
+
+        students = []
+
+        if query:
+            students = find_students(query)
+
+        html = self.render_template(
+            'search.html',
+            {
+                'query': query,
+                'students': students
+            }
+        )
+        self.send_html(html)
+
     def create_student(self):
         content_length = int(self.headers['Content-Length'])
         body = self.rfile.read(content_length).decode("utf-8")
@@ -130,6 +147,8 @@ class AppHandler(BaseHTTPRequestHandler):
             self.show_students()
         elif parsed.path == "/form":
             self.show_form()
+        elif parsed.path == '/search':
+            self.show_search(params)
         elif len(parts) == 3 and parts[0] == "students" and parts[2] == "delete":
             self.delete_student_view(int(parts[1]))
         elif len(parts) == 3 and parts[0] == "students" and parts[2] == "edit":

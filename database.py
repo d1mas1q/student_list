@@ -1,4 +1,6 @@
 import sqlite3
+from re import search
+
 from models.applicant import Student
 
 
@@ -101,3 +103,9 @@ def delete_student(student_id):
     rows = execute(sql, params)
     if rows == 0: raise StudentNotFoundError(student_id)
 
+def find_students(query):
+    search = '%' + query + '%'
+    sql = "SELECT * FROM students WHERE LOWER(first_name) LIKE LOWER(?) or LOWER(last_name) LIKE LOWER(?) or LOWER(group_number) LIKE LOWER(?) or LOWER(email) LIKE LOWER(?)"
+    params = (search, search, search, search)
+    rows = fetch_all(sql, params)
+    return [row_to_student(row) for row in rows]
