@@ -4,8 +4,11 @@
     <input type="text" name="q" value="{{ query }}">
     <button type="submit">Найти</button>
 </form>
+{% if query and not students %}
+    <p>Ничего не найдено.</p>
+{% endif %}
 
-{% if query %}
+{% if query and students %}
 <p>
     Показаны только абитуриенты, найденные по запросу «{{ query }}».
 </p>
@@ -14,5 +17,11 @@
 {% endif %}
 
 {% for student in students %}
-    <p>{{ student.first_name }}</p>
+    <p>
+        {{ student.first_name }}
+        {{ student.last_name }}
+        ({{ student.group_number }})
+    </p>
+    <a href="/students/{{ student.id }}/edit">Изменить</a>
+    <a href="/students/{{ student.id }}/delete">Удалить</a>
 {% endfor %}

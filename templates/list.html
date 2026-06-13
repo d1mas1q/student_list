@@ -2,12 +2,40 @@
 
 <a href="/search">Поиск абитуриента</a>
 <a href="/form">Добавить абитуриента</a>
-{% for student in students %}
-    <p>
-        {{ student.first_name }}
-        {{ student.last_name }}
-        ({{ student.group_number }})
-    </p>
-    <a href="/students/{{ student.id }}/edit">Изменить</a>
-    <a href="/students/{{ student.id }}/delete">Удалить</a>
-{% endfor %}
+
+<h3>Сортировка</h3>
+
+<a href="/?sort=first_name&order=asc">Имя ↑</a>
+<a href="/?sort=first_name&order=desc">Имя ↓</a>
+
+<a href="/?sort=last_name&order=asc">Фамилия ↑</a>
+<a href="/?sort=last_name&order=desc">Фамилия ↓</a>
+
+<a href="/?sort=group_number&order=asc">Группа ↑</a>
+<a href="/?sort=group_number&order=desc">Группа ↓</a>
+
+<a href="/?sort=exam_score&order=asc">Баллы ↑</a>
+<a href="/?sort=exam_score&order=desc">Баллы ↓</a>
+
+<table>
+    <tr>
+        <th>Имя</th>
+        <th>Фамилия</th>
+        <th>Группа</th>
+        <th>Баллы ЕГЭ</th>
+        <th>Действия</th>
+    </tr>
+
+    {% for student in students %}
+    <tr>
+        <td>{{ student.first_name }}</td>
+        <td>{{ student.last_name }}</td>
+        <td>{{ student.group_number}}</td>
+        <td>{{ student.exam_score }}</td>
+        <td>
+            <a href="/students/{{ student.id }}/edit">Изменить</a>
+            <a href="/students/{{ student.id }}/delete">Удалить</a>
+        </td>
+    </tr>
+    {% endfor %}
+</table>

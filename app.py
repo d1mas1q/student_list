@@ -60,9 +60,18 @@ class AppHandler(BaseHTTPRequestHandler):
             "is_local": self.get_value(params, "is_local") == 'on',
         }
 
-    def show_students(self):
-        students = get_students()
-        html = self.render_template("list.html", {"students": students})
+    def show_students(self, params):
+        sort = self.get_value(params, 'sort', 'exam_score')
+        order = self.get_value(params, 'order', 'desc')
+
+        students = get_students(sort, order)
+
+        html = self.render_template(
+            "list.html",
+            {
+                "students": students
+            }
+        )
         self.send_html(html)
 
     def show_form(self):
@@ -144,7 +153,7 @@ class AppHandler(BaseHTTPRequestHandler):
         parts = parsed.path.strip('/').split("/")
 
         if parsed.path == "/":
-            self.show_students()
+            self.show_students(params)
         elif parsed.path == "/form":
             self.show_form()
         elif parsed.path == '/search':

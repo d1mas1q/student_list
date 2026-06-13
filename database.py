@@ -1,5 +1,4 @@
 import sqlite3
-from re import search
 
 from models.applicant import Student
 
@@ -72,8 +71,16 @@ def add_student(first_name, last_name, gender, group_number, email, exam_score, 
 
 
 
-def get_students():
-    sql = "SELECT * FROM students"
+def get_students(sort='exam_score', order='desc'):
+    allowed_fields = ['first_name', 'last_name', 'group_number', 'exam_score']
+
+    if sort not in allowed_fields:
+        sort = 'exam_score'
+
+    if order not in ['asc', 'desc']:
+        order = 'desc'
+
+    sql = f"SELECT * FROM students ORDER BY {sort} {order}"
     rows = fetch_all(sql)
     return [row_to_student(row) for row in rows]
 
@@ -105,7 +112,7 @@ def delete_student(student_id):
 
 def find_students(query):
     search = '%' + query + '%'
-    sql = "SELECT * FROM students WHERE LOWER(first_name) LIKE LOWER(?) or LOWER(last_name) LIKE LOWER(?) or LOWER(group_number) LIKE LOWER(?) or LOWER(email) LIKE LOWER(?)"
-    params = (search, search, search, search)
+    sql = "SELECT * FROM students WHERE LOWER(first_name) LIKE LOWER(?) or LOWER(last_name) LIKE LOWER(?) or LOWER(group_number) LIKE LOWER(?)"
+    params = (search, search, search)
     rows = fetch_all(sql, params)
     return [row_to_student(row) for row in rows]
