@@ -72,11 +72,11 @@ def add_student(first_name, last_name, gender, group_number, email, exam_score, 
 
 
 def get_students(sort='exam_score', order='desc'):
+    sort = sort.lower() if sort else 'exam_score'
+    order = order.lower() if order else 'desc'
     allowed_fields = ['first_name', 'last_name', 'group_number', 'exam_score']
-
     if sort not in allowed_fields:
         sort = 'exam_score'
-
     if order not in ['asc', 'desc']:
         order = 'desc'
 

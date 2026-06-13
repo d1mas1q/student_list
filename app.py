@@ -45,6 +45,25 @@ class AppHandler(BaseHTTPRequestHandler):
 
         return None
 
+    def get_owned_student(self, student_id):
+        try:
+            student = get_student_by_id(student_id)
+        except StudentNotFoundError:
+            self.send_html(
+                "<h1>404 - Студент не найден</h1>",
+                status=404
+            )
+            return None
+
+        if self.get_auth_token() == student.auth_token:
+            return student
+
+        self.send_html(
+            "<h1>403 Forbidden</h1>",
+            status=403
+        )
+        return None
+
     def get_value(self, params, key, default=''):
         return params.get(key, [default])[0]
 
@@ -65,11 +84,13 @@ class AppHandler(BaseHTTPRequestHandler):
         order = self.get_value(params, 'order', 'desc')
 
         students = get_students(sort, order)
+        current_token = self.get_auth_token()
 
         html = self.render_template(
             "list.html",
             {
-                "students": students
+                "students": students,
+                "current_token": current_token
             }
         )
         self.send_html(html)
@@ -91,17 +112,16 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_html(html)
 
     def show_edit_form(self, student_id):
-        try:
-            student = get_student_by_id(student_id)
-        except StudentNotFoundError:
+        student = self.get_owned_student(student_id)
+        if student:
+            context = {'student': student}
+            html = self.render_template('edit.html', context)
+            self.send_html(html)
+        else:
             self.send_html(
-                "<h1>404 - Студент не найден</h1>",
-                status=404
+                "<h1>403 Forbidden</h1>",
+                status=403
             )
-            return
-        context = {'student' : student}
-        html = self.render_template('edit.html', context)
-        self.send_html(html)
 
     def show_search(self, params):
         query = self.get_value(params, 'q')
@@ -143,8 +163,13 @@ class AppHandler(BaseHTTPRequestHandler):
             return
 
     def delete_student_view(self, student_id):
-        delete_student(student_id)
-        self.redirect()
+        student = self.get_owned_student(student_id)
+        if student:
+            delete_student(student_id)
+            self.redirect()
+        else:
+            self.send_html("403 Forbidden", status=403)
+            return
 
 
     def do_GET(self):
@@ -178,8 +203,15 @@ class AppHandler(BaseHTTPRequestHandler):
             body = self.rfile.read(content_length).decode("utf-8")
             params = parse_qs(body)
             student = self.parse_student_form(params)
-            update_student(**student, student_id=int(parts[1]))
-            self.redirect()
+            student_db = self.get_owned_student(int(parts[1]))
+            if student_db:
+                update_student(**student, student_id=int(parts[1]))
+                self.redirect()
+            else:
+                self.send_html(
+                    "<h1>403 Forbidden</h1>",
+                    status=403
+                )
         else:
             self.send_html(
                 "<h1>404</h1>",
