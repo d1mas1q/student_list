@@ -1,6 +1,7 @@
 import sqlite3
 
 from models.applicant import Student
+from settings import DATABASE_NAME, PER_PAGE
 
 
 class StudentNotFoundError(Exception):
@@ -28,21 +29,21 @@ def row_to_student(row):
 
 
 def execute(sql, params=()):
-    with sqlite3.connect("test.db") as connection:
+    with sqlite3.connect(DATABASE_NAME) as connection:
         connection.row_factory = sqlite3.Row
         cursor = connection.cursor()
         cursor.execute(sql, params)
         return cursor.rowcount
 
 def fetch_one(sql, params=()):
-    with sqlite3.connect("test.db") as connection:
+    with sqlite3.connect(DATABASE_NAME) as connection:
         connection.row_factory = sqlite3.Row
         cursor = connection.cursor()
         cursor.execute(sql, params)
         return cursor.fetchone()
 
 def fetch_all(sql, params=()):
-    with sqlite3.connect("test.db") as connection:
+    with sqlite3.connect(DATABASE_NAME) as connection:
         connection.row_factory = sqlite3.Row
         cursor = connection.cursor()
         cursor.execute(sql, params)
@@ -69,19 +70,23 @@ def add_student(first_name, last_name, gender, group_number, email, exam_score, 
     params = (first_name, last_name, gender, group_number, email, exam_score, birth_year, is_local, auth_token)
     execute(sql, params)
 
+def get_students_count():
+    sql = "SELECT COUNT(*) FROM students"
+    return fetch_one(sql)[0]
 
 
-def get_students(sort='exam_score', order='desc'):
+def get_students(sort='exam_score', order='desc', page=1):
     sort = sort.lower() if sort else 'exam_score'
     order = order.lower() if order else 'desc'
+    offset = PER_PAGE * (page-1)
     allowed_fields = ['first_name', 'last_name', 'group_number', 'exam_score']
     if sort not in allowed_fields:
         sort = 'exam_score'
     if order not in ['asc', 'desc']:
         order = 'desc'
-
-    sql = f"SELECT * FROM students ORDER BY {sort} {order}"
-    rows = fetch_all(sql)
+    params = (PER_PAGE, offset)
+    sql = f"SELECT * FROM students ORDER BY {sort} {order} LIMIT ? OFFSET ?"
+    rows = fetch_all(sql, params)
     return [row_to_student(row) for row in rows]
 
 
@@ -110,9 +115,16 @@ def delete_student(student_id):
     rows = execute(sql, params)
     if rows == 0: raise StudentNotFoundError(student_id)
 
-def find_students(query):
+def find_students(query, page=1):
     search = '%' + query + '%'
-    sql = "SELECT * FROM students WHERE LOWER(first_name) LIKE LOWER(?) or LOWER(last_name) LIKE LOWER(?) or LOWER(group_number) LIKE LOWER(?)"
-    params = (search, search, search)
+    offset = PER_PAGE * (page - 1)
+    sql = "SELECT * FROM students WHERE LOWER(first_name) LIKE LOWER(?) or LOWER(last_name) LIKE LOWER(?) or LOWER(group_number) LIKE LOWER(?) LIMIT ? OFFSET ?"
+    params = (search, search, search, PER_PAGE, offset)
     rows = fetch_all(sql, params)
     return [row_to_student(row) for row in rows]
+
+def find_students_count(query: str):
+    search = '%' + query + '%'
+    sql = "SELECT COUNT(*) FROM students WHERE LOWER(first_name) LIKE LOWER(?) or LOWER(last_name) LIKE LOWER(?) or LOWER(group_number) LIKE LOWER(?)"
+    params = (search, search, search)
+    return fetch_one(sql, params)[0]

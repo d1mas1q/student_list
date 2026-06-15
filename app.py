@@ -2,9 +2,11 @@ import secrets
 from http.cookies import SimpleCookie
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
-from database import add_student, get_students, delete_student, update_student, get_student_by_id, StudentNotFoundError, get_student_by_token, find_students
+from database import add_student, get_students, delete_student, update_student, get_student_by_id, StudentNotFoundError, \
+    get_student_by_token, find_students, get_students_count, find_students_count
 from services.validator import validate_student
 from jinja2 import Environment, FileSystemLoader
+from settings import PER_PAGE, SUPERUSER_TOKEN
 
 #Jinja2
 env = Environment(loader=FileSystemLoader("templates"))
@@ -13,7 +15,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def redirect(self, auth_token=None):
         self.send_response(302)
-        if auth_token: self.send_header('Set-Cookie', f'auth_token={auth_token}')
+        if auth_token: self.send_header('Set-Cookie', f'auth_token={auth_token}; Max-Age=315360000')
         self.send_header("Location", "/")
         self.end_headers()
 
@@ -55,7 +57,7 @@ class AppHandler(BaseHTTPRequestHandler):
             )
             return None
 
-        if self.get_auth_token() == student.auth_token:
+        if self.get_auth_token() == student.auth_token or self.is_superuser():
             return student
 
         self.send_html(
@@ -64,8 +66,22 @@ class AppHandler(BaseHTTPRequestHandler):
         )
         return None
 
+    def is_superuser(self):
+        return self.get_auth_token() == SUPERUSER_TOKEN
+
     def get_value(self, params, key, default=''):
         return params.get(key, [default])[0]
+
+    def get_page(self, params):
+        try:
+            page = int(self.get_value(params, 'page', '1'))
+        except ValueError:
+            page = 1
+        if page < 1: page = 1
+        return page
+
+    def get_total_pages(self, total_students):
+        return (total_students + PER_PAGE - 1) // PER_PAGE
 
     def parse_student_form(self, params):
         return {
@@ -82,15 +98,22 @@ class AppHandler(BaseHTTPRequestHandler):
     def show_students(self, params):
         sort = self.get_value(params, 'sort', 'exam_score')
         order = self.get_value(params, 'order', 'desc')
-
-        students = get_students(sort, order)
+        page = self.get_page(params)
+        total_students = get_students_count()
+        total_pages = self.get_total_pages(total_students)
+        students = get_students(sort, order, page)
         current_token = self.get_auth_token()
 
         html = self.render_template(
             "list.html",
             {
+                "is_superuser": self.is_superuser(),
                 "students": students,
-                "current_token": current_token
+                "current_token": current_token,
+                "page": page,
+                "total_pages": total_pages,
+                "sort": sort,
+                "order": order
             }
         )
         self.send_html(html)
@@ -117,25 +140,26 @@ class AppHandler(BaseHTTPRequestHandler):
             context = {'student': student}
             html = self.render_template('edit.html', context)
             self.send_html(html)
-        else:
-            self.send_html(
-                "<h1>403 Forbidden</h1>",
-                status=403
-            )
+
 
     def show_search(self, params):
         query = self.get_value(params, 'q')
+        page = self.get_page(params)
 
-        students = []
-
-        if query:
-            students = find_students(query)
+        total_students = find_students_count(query)
+        students = find_students(query, page)
+        total_pages = self.get_total_pages(total_students)
+        current_token = self.get_auth_token()
 
         html = self.render_template(
-            'search.html',
+            "search.html",
             {
-                'query': query,
-                'students': students
+                "is_superuser": self.is_superuser(),
+                "query": query,
+                "page": page,
+                "students": students,
+                "total_pages": total_pages,
+                "current_token": current_token,
             }
         )
         self.send_html(html)
@@ -164,12 +188,12 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def delete_student_view(self, student_id):
         student = self.get_owned_student(student_id)
-        if student:
-            delete_student(student_id)
-            self.redirect()
-        else:
-            self.send_html("403 Forbidden", status=403)
+
+        if not student:
             return
+
+        delete_student(student_id)
+        self.redirect()
 
 
     def do_GET(self):
@@ -204,14 +228,10 @@ class AppHandler(BaseHTTPRequestHandler):
             params = parse_qs(body)
             student = self.parse_student_form(params)
             student_db = self.get_owned_student(int(parts[1]))
-            if student_db:
-                update_student(**student, student_id=int(parts[1]))
-                self.redirect()
-            else:
-                self.send_html(
-                    "<h1>403 Forbidden</h1>",
-                    status=403
-                )
+            if not student_db:
+                return
+            update_student(**student, student_id=int(parts[1]))
+            self.redirect()
         else:
             self.send_html(
                 "<h1>404</h1>",
