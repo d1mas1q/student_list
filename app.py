@@ -9,7 +9,6 @@ from services.templates import render_template
 from settings import PER_PAGE, SUPERUSER_TOKEN
 
 
-
 class AppHandler(BaseHTTPRequestHandler):
 
     def redirect(self, auth_token=None):
@@ -18,11 +17,24 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_header("Location", "/")
         self.end_headers()
 
+
     def send_html(self, html, status=200):
         self.send_response(status)
         self.send_header("Content-Type", "text/html; charset=utf-8")
         self.end_headers()
         self.wfile.write(html.encode("utf-8"))
+
+
+    def get_post_params(self):
+        content_length = int(self.headers['Content-Length'])
+        body = self.rfile.read(content_length).decode("utf-8")
+        return parse_qs(body)
+
+    def get_user_context(self):
+        return {
+            "current_token": self.get_auth_token(),
+            "is_superuser": self.is_superuser(),
+        }
 
 
     def get_auth_token(self):
@@ -38,6 +50,7 @@ class AppHandler(BaseHTTPRequestHandler):
             return cookie['auth_token'].value
 
         return None
+
 
     def get_owned_student(self, student_id):
         try:
@@ -58,8 +71,10 @@ class AppHandler(BaseHTTPRequestHandler):
         )
         return None
 
+
     def admin_login(self):
         self.redirect(SUPERUSER_TOKEN)
+
 
     def logout(self):
         self.send_response(302)
@@ -67,11 +82,14 @@ class AppHandler(BaseHTTPRequestHandler):
         self.send_header("Location", "/")
         self.end_headers()
 
+
     def is_superuser(self):
         return self.get_auth_token() == SUPERUSER_TOKEN
 
+
     def get_value(self, params, key, default=''):
         return params.get(key, [default])[0]
+
 
     def get_page(self, params):
         try:
@@ -81,8 +99,10 @@ class AppHandler(BaseHTTPRequestHandler):
         if page < 1: page = 1
         return page
 
+
     def get_total_pages(self, total_students):
         return (total_students + PER_PAGE - 1) // PER_PAGE
+
 
     def parse_student_form(self, params):
         return {
@@ -96,6 +116,7 @@ class AppHandler(BaseHTTPRequestHandler):
             "is_local": self.get_value(params, "is_local") == 'on',
         }
 
+
     def show_students(self, params):
         sort = self.get_value(params, 'sort', 'exam_score')
         order = self.get_value(params, 'order', 'desc')
@@ -103,14 +124,12 @@ class AppHandler(BaseHTTPRequestHandler):
         total_students = get_students_count()
         total_pages = self.get_total_pages(total_students)
         students = get_students(sort, order, page)
-        current_token = self.get_auth_token()
 
         html = render_template(
             "list.html",
             {
-                "is_superuser": self.is_superuser(),
+                **self.get_user_context(),
                 "students": students,
-                "current_token": current_token,
                 "page": page,
                 "total_pages": total_pages,
                 "sort": sort,
@@ -118,6 +137,7 @@ class AppHandler(BaseHTTPRequestHandler):
             }
         )
         self.send_html(html)
+
 
     def show_form(self):
         auth_token = self.get_auth_token()
@@ -135,12 +155,14 @@ class AppHandler(BaseHTTPRequestHandler):
         )
         self.send_html(html)
 
+
     def show_edit_form(self, student_id):
         student = self.get_owned_student(student_id)
         if student:
             context = {'student': student}
             html = render_template('edit.html', context)
             self.send_html(html)
+
 
     def show_admin_login(self):
         if self.is_superuser():
@@ -157,20 +179,19 @@ class AppHandler(BaseHTTPRequestHandler):
         total_students = find_students_count(query)
         students = find_students(query, page)
         total_pages = self.get_total_pages(total_students)
-        current_token = self.get_auth_token()
 
         html = render_template(
             "search.html",
             {
-                "is_superuser": self.is_superuser(),
+                **self.get_user_context(),
                 "query": query,
                 "page": page,
                 "students": students,
                 "total_pages": total_pages,
-                "current_token": current_token,
             }
         )
         self.send_html(html)
+
 
     def create_student(self):
         content_length = int(self.headers['Content-Length'])
@@ -193,6 +214,7 @@ class AppHandler(BaseHTTPRequestHandler):
             )
             self.send_html(html)
             return
+
 
     def delete_student_view(self, student_id):
         student = self.get_owned_student(student_id)
@@ -235,16 +257,12 @@ class AppHandler(BaseHTTPRequestHandler):
         if self.path == "/form":
             self.create_student()
         elif parsed.path == '/admin-login':
-            content_length = int(self.headers['Content-Length'])
-            body = self.rfile.read(content_length).decode("utf-8")
-            params = parse_qs(body)
+            params = self.get_post_params()
             token = self.get_value(params, 'token')
             if token == SUPERUSER_TOKEN: self.admin_login()
             else: self.show_admin_login()
         elif len(parts) == 3 and parts[0] == "students" and parts[2] == "edit":
-            content_length = int(self.headers['Content-Length'])
-            body = self.rfile.read(content_length).decode("utf-8")
-            params = parse_qs(body)
+            params = self.get_post_params()
             student = self.parse_student_form(params)
             student_db = self.get_owned_student(int(parts[1]))
             if not student_db:
