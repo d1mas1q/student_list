@@ -5,11 +5,10 @@ from urllib.parse import urlparse, parse_qs
 from database import add_student, get_students, delete_student, update_student, get_student_by_id, StudentNotFoundError, \
     get_student_by_token, find_students, get_students_count, find_students_count
 from services.validator import validate_student
-from jinja2 import Environment, FileSystemLoader
+from services.templates import render_template
 from settings import PER_PAGE, SUPERUSER_TOKEN
 
-#Jinja2
-env = Environment(loader=FileSystemLoader("templates"))
+
 
 class AppHandler(BaseHTTPRequestHandler):
 
@@ -25,13 +24,6 @@ class AppHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(html.encode("utf-8"))
 
-    def load_template(self, path):
-        with open(path, encoding="utf-8") as file:
-            return file.read()
-
-    def render_template(self, template_name, context):
-        template = env.get_template(template_name)
-        return template.render(**context)
 
     def get_auth_token(self):
         cookie_header = self.headers.get('Cookie')
@@ -65,6 +57,15 @@ class AppHandler(BaseHTTPRequestHandler):
             status=403
         )
         return None
+
+    def admin_login(self):
+        self.redirect(SUPERUSER_TOKEN)
+
+    def logout(self):
+        self.send_response(302)
+        self.send_header('Set-Cookie', f'auth_token=; Max-Age=0')
+        self.send_header("Location", "/")
+        self.end_headers()
 
     def is_superuser(self):
         return self.get_auth_token() == SUPERUSER_TOKEN
@@ -104,7 +105,7 @@ class AppHandler(BaseHTTPRequestHandler):
         students = get_students(sort, order, page)
         current_token = self.get_auth_token()
 
-        html = self.render_template(
+        html = render_template(
             "list.html",
             {
                 "is_superuser": self.is_superuser(),
@@ -125,7 +126,7 @@ class AppHandler(BaseHTTPRequestHandler):
             self.redirect()
             return
 
-        html = self.render_template(
+        html = render_template(
             "form.html",
             {
                 "student": {},
@@ -138,8 +139,15 @@ class AppHandler(BaseHTTPRequestHandler):
         student = self.get_owned_student(student_id)
         if student:
             context = {'student': student}
-            html = self.render_template('edit.html', context)
+            html = render_template('edit.html', context)
             self.send_html(html)
+
+    def show_admin_login(self):
+        if self.is_superuser():
+            self.redirect()
+            return
+        html = render_template('admin-login.html', {})
+        self.send_html(html)
 
 
     def show_search(self, params):
@@ -151,7 +159,7 @@ class AppHandler(BaseHTTPRequestHandler):
         total_pages = self.get_total_pages(total_students)
         current_token = self.get_auth_token()
 
-        html = self.render_template(
+        html = render_template(
             "search.html",
             {
                 "is_superuser": self.is_superuser(),
@@ -207,6 +215,10 @@ class AppHandler(BaseHTTPRequestHandler):
             self.show_form()
         elif parsed.path == '/search':
             self.show_search(params)
+        elif parsed.path == '/admin-login':
+            self.show_admin_login()
+        elif parsed.path == '/logout':
+            self.logout()
         elif len(parts) == 3 and parts[0] == "students" and parts[2] == "delete":
             self.delete_student_view(int(parts[1]))
         elif len(parts) == 3 and parts[0] == "students" and parts[2] == "edit":
@@ -222,6 +234,13 @@ class AppHandler(BaseHTTPRequestHandler):
 
         if self.path == "/form":
             self.create_student()
+        elif parsed.path == '/admin-login':
+            content_length = int(self.headers['Content-Length'])
+            body = self.rfile.read(content_length).decode("utf-8")
+            params = parse_qs(body)
+            token = self.get_value(params, 'token')
+            if token == SUPERUSER_TOKEN: self.admin_login()
+            else: self.show_admin_login()
         elif len(parts) == 3 and parts[0] == "students" and parts[2] == "edit":
             content_length = int(self.headers['Content-Length'])
             body = self.rfile.read(content_length).decode("utf-8")
