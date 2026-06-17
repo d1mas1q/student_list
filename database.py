@@ -76,14 +76,8 @@ def get_students_count():
 
 
 def get_students(sort='exam_score', order='desc', page=1):
-    sort = sort.lower() if sort else 'exam_score'
-    order = order.lower() if order else 'desc'
+    sort, order = normalize_sort(sort, order)
     offset = PER_PAGE * (page-1)
-    allowed_fields = ['first_name', 'last_name', 'group_number', 'exam_score']
-    if sort not in allowed_fields:
-        sort = 'exam_score'
-    if order not in ['asc', 'desc']:
-        order = 'desc'
     params = (PER_PAGE, offset)
     sql = f"SELECT * FROM students ORDER BY {sort} {order} LIMIT ? OFFSET ?"
     rows = fetch_all(sql, params)
@@ -115,10 +109,11 @@ def delete_student(student_id):
     rows = execute(sql, params)
     if rows == 0: raise StudentNotFoundError(student_id)
 
-def find_students(query, page=1):
+def find_students(query, sort='exam_score', order='desc', page=1):
     search = '%' + query + '%'
     offset = PER_PAGE * (page - 1)
-    sql = "SELECT * FROM students WHERE LOWER(first_name) LIKE LOWER(?) or LOWER(last_name) LIKE LOWER(?) or LOWER(group_number) LIKE LOWER(?) LIMIT ? OFFSET ?"
+    sort, order = normalize_sort(sort, order)
+    sql = f"SELECT * FROM students WHERE LOWER(first_name) LIKE LOWER(?) or LOWER(last_name) LIKE LOWER(?) or LOWER(group_number) LIKE LOWER(?) ORDER BY {sort} {order} LIMIT ? OFFSET ?"
     params = (search, search, search, PER_PAGE, offset)
     rows = fetch_all(sql, params)
     return [row_to_student(row) for row in rows]
@@ -128,3 +123,14 @@ def find_students_count(query: str):
     sql = "SELECT COUNT(*) FROM students WHERE LOWER(first_name) LIKE LOWER(?) or LOWER(last_name) LIKE LOWER(?) or LOWER(group_number) LIKE LOWER(?)"
     params = (search, search, search)
     return fetch_one(sql, params)[0]
+
+
+def normalize_sort(sort, order):
+    sort = sort.lower() if sort else 'exam_score'
+    order = order.lower() if order else 'desc'
+    allowed_fields = ['first_name', 'last_name', 'group_number', 'exam_score']
+    if sort not in allowed_fields:
+        sort = 'exam_score'
+    if order not in ['asc', 'desc']:
+        order = 'desc'
+    return sort, order
