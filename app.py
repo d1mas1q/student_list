@@ -160,8 +160,7 @@ class AppHandler(BaseHTTPRequestHandler):
     def show_edit_form(self, student_id):
         student = self.get_owned_student(student_id)
         if student:
-            context = {'student': student}
-            html = render_template('edit.html', context)
+            html = render_template('edit.html', {'student': student, 'errors': {}})
             self.send_html(html)
 
 
@@ -199,9 +198,7 @@ class AppHandler(BaseHTTPRequestHandler):
 
 
     def create_student(self):
-        content_length = int(self.headers['Content-Length'])
-        body = self.rfile.read(content_length).decode("utf-8")
-        params = parse_qs(body)
+        params = self.get_post_params()
         student = self.parse_student_form(params)
         errors = validate_student(student)
 
@@ -269,9 +266,16 @@ class AppHandler(BaseHTTPRequestHandler):
         elif len(parts) == 3 and parts[0] == "students" and parts[2] == "edit":
             params = self.get_post_params()
             student = self.parse_student_form(params)
+            errors = validate_student(student)
+            if errors:
+                html = render_template('edit.html', {'student': student, 'errors': errors})
+                self.send_html(html)
+                return
+
             student_db = self.get_owned_student(int(parts[1]))
             if not student_db:
                 return
+
             update_student(**student, student_id=int(parts[1]))
             self.redirect()
         else:
