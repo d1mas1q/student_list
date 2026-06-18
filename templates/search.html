@@ -13,6 +13,7 @@
         type="text"
         name="q"
         value="{{ query }}"
+        placeholder="Введите поисковый запрос"
     >
 
     <button class="btn btn-primary mt-2" type="submit">
@@ -35,11 +36,51 @@
 {% endif %}
     <table class="table table-striped table-hover">
         <tr>
-            <th>Имя</th>
-            <th>Фамилия</th>
-            <th>Группа</th>
-            <th>Баллы ЕГЭ</th>
-        </tr>
+        <th>
+            {% if sort == 'first_name' %}
+                {% if order == 'asc' %}
+                    <a href="/search?q={{ query }}&sort=first_name&order=desc">Имя ↑</a>
+                {% else %}
+                    <a href="/search?q={{ query }}&sort=first_name&order=asc">Имя ↓</a>
+                {% endif %}
+            {% else %}
+                <a href="/search?q={{ query }}&sort=first_name&order=asc">Имя</a>
+            {% endif %}
+            </th>
+        <th>
+            {% if sort == 'last_name' %}
+                {% if order == 'asc' %}
+                    <a href="/search?q={{ query }}&sort=last_name&order=desc">Фамилия ↑</a>
+                {% else %}
+                    <a href="/search?q={{ query }}&sort=last_name&order=asc">Фамилия ↓</a>
+                {% endif %}
+            {% else %}
+                <a href="/search?q={{ query }}&sort=last_name&order=asc">Фамилия</a>
+            {% endif %}
+            </th>
+        <th>
+            {% if sort == 'group_number' %}
+                {% if order == 'asc' %}
+                    <a href="/search?q={{ query }}&sort=group_number&order=desc">Группа ↑</a>
+                {% else %}
+                    <a href="/search?q={{ query }}&sort=group_number&order=asc">Группа ↓</a>
+                {% endif %}
+            {% else %}
+                <a href="/search?q={{ query }}&sort=group_number&order=asc">Группа</a>
+            {% endif %}
+        </th>
+        <th>
+            {% if sort == 'exam_score' %}
+                {% if order == 'asc' %}
+                    <a href="/search?q={{ query }}&sort=exam_score&order=desc">Баллы ↑</a>
+                {% else %}
+                    <a href="/search?q={{ query }}&sort=exam_score&order=asc">Баллы ↓</a>
+                {% endif %}
+            {% else %}
+                <a href="/search?q={{ query }}&sort=exam_score&order=asc">Баллы</a>
+            {% endif %}
+        </th>
+    </tr>
 
         {% for student in students %}
         <tr>

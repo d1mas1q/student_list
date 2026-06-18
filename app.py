@@ -30,6 +30,7 @@ class AppHandler(BaseHTTPRequestHandler):
         body = self.rfile.read(content_length).decode("utf-8")
         return parse_qs(body)
 
+
     def get_user_context(self):
         return {
             "current_token": self.get_auth_token(),
@@ -175,9 +176,11 @@ class AppHandler(BaseHTTPRequestHandler):
     def show_search(self, params):
         query = self.get_value(params, 'q')
         page = self.get_page(params)
+        sort = self.get_value(params, 'sort', 'exam_score')
+        order = self.get_value(params, 'order', 'desc')
 
         total_students = find_students_count(query)
-        students = find_students(query, page)
+        students = find_students(query, sort, order, page)
         total_pages = self.get_total_pages(total_students)
 
         html = render_template(
@@ -188,6 +191,8 @@ class AppHandler(BaseHTTPRequestHandler):
                 "page": page,
                 "students": students,
                 "total_pages": total_pages,
+                "sort": sort,
+                "order": order
             }
         )
         self.send_html(html)
@@ -205,7 +210,7 @@ class AppHandler(BaseHTTPRequestHandler):
             add_student(**student)
             self.redirect(student['auth_token'])
         else:
-            html = self.render_template(
+            html = render_template(
                 "form.html",
                 {
                     "errors": errors,
