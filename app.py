@@ -174,14 +174,18 @@ class AppHandler(BaseHTTPRequestHandler):
 
     def show_search(self, params):
         query = self.get_value(params, 'q')
+        print(params)
         page = self.get_page(params)
         sort = self.get_value(params, 'sort', 'exam_score')
         order = self.get_value(params, 'order', 'desc')
 
-        total_students = find_students_count(query)
-        students = find_students(query, sort, order, page)
-        total_pages = self.get_total_pages(total_students)
-
+        if query:
+            total_students = find_students_count(query)
+            students = find_students(query, sort, order, page)
+            total_pages = self.get_total_pages(total_students)
+        else:
+            students = []
+            total_pages = 0
         html = render_template(
             "search.html",
             {
