@@ -1,20 +1,22 @@
-<!DOCTYPE html>
-<html lang="ru">
-<head>
-    <meta charset="UTF-8">
-    <title>Абитуриенты</title>
-
-    <link
-        href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css"
-        rel="stylesheet"
-    >
-</head>
-<body>
-
-<h1>Авторизация суперпользователя</h1>
+{% extends "base.html" %}
+{% block title %}
+Вход администратора
+{% endblock %}
+{% block content %}
+<h1 class="mb-4">Вход администратора</h1>
 <form method="POST">
-    <input type="password" name="token">
-    <button type="submit">Войти</button>
+    <div class="mb-3">
+    <label class="form-label">Токен администратора</label>
+    <input class="form-control" type="password" name="token">
+        {% if error %}
+        <div class="alert alert-danger">
+            {{ error }}
+        </div>
+        {% endif %}
+    </div>
+
+    <button class="btn btn-primary" type="submit">
+        Войти
+    </button>
 </form>
-</body>
-</html>
+{% endblock %}

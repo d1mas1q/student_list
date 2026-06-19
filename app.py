@@ -164,11 +164,11 @@ class AppHandler(BaseHTTPRequestHandler):
             self.send_html(html)
 
 
-    def show_admin_login(self):
+    def show_admin_login(self, error=''):
         if self.is_superuser():
             self.redirect()
             return
-        html = render_template('admin-login.html', {})
+        html = render_template('admin-login.html', {'error': error})
         self.send_html(html)
 
 
@@ -262,7 +262,9 @@ class AppHandler(BaseHTTPRequestHandler):
             params = self.get_post_params()
             token = self.get_value(params, 'token')
             if token == SUPERUSER_TOKEN: self.admin_login()
-            else: self.show_admin_login()
+            else:
+                self.show_admin_login('Неверный токен')
+                return 
         elif len(parts) == 3 and parts[0] == "students" and parts[2] == "edit":
             params = self.get_post_params()
             student = self.parse_student_form(params)

@@ -85,13 +85,24 @@
         {% for student in students %}
         <tr>
             <td>
-                {{ student.first_name }}
+            {{ student.first_name }}
 
-                {% if student.auth_token == current_token or is_superuser %}
-                    <a href="/students/{{ student.id }}/edit">✏️</a>
-                    <a href="/students/{{ student.id }}/delete">🗑️</a>
-                {% endif %}
-            </td>
+            {% if student.auth_token == current_token or is_superuser %}
+                <a
+                    class="btn btn-sm btn-outline-primary"
+                    href="/students/{{ student.id }}/edit"
+                >
+                    ✏️
+                </a>
+
+                <a
+                    class="btn btn-sm btn-outline-danger"
+                    href="/students/{{ student.id }}/delete"
+                >
+                    🗑️
+                </a>
+            {% endif %}
+        </td>
             <td>{{ student.last_name }}</td>
             <td>{{ student.group_number }}</td>
             <td>{{ student.exam_score }}</td>
