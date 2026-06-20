@@ -291,6 +291,6 @@ class AppHandler(BaseHTTPRequestHandler):
             )
 
 
-server = HTTPServer(("localhost", 8000), AppHandler)
+server = HTTPServer(("0.0.0.0", 8000), AppHandler)
 print(f'serving at {server.server_address[0]}:{server.server_address[1]}')
 server.serve_forever()
